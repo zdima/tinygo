@@ -55,6 +55,14 @@ func TestCompiler(t *testing.T) {
 		runPlatTests("cortex-m-qemu", matches, t)
 	})
 
+	if runtime.GOOS == "darwin" {
+		// The QEMU version on Darwin has enough RISC-V support to be able to
+		// run the tests.
+		t.Run("EmulatedHiFive1", func(t *testing.T) {
+			runPlatTests("hifive1-qemu", matches, t)
+		})
+	}
+
 	if runtime.GOOS == "linux" {
 		t.Run("ARMLinux", func(t *testing.T) {
 			runPlatTests("arm--linux-gnueabihf", matches, t)
@@ -83,6 +91,8 @@ func runPlatTests(target string, matches []string, t *testing.T) {
 		case target == "":
 			// run all tests on host
 		case target == "cortex-m-qemu":
+			// all tests are supported
+		case target == "hifive1-qemu":
 			// all tests are supported
 		default:
 			// cross-compilation of cgo is not yet supported
