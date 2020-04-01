@@ -451,6 +451,7 @@ endif
 	@$(MD5SUM) test.nro
 	$(TINYGO) build -size short -o test.hex -target=pca10040 -opt=0     ./testdata/stdlib.go
 	@$(MD5SUM) test.hex
+	GOOS=linux GOARCH=arm $(TINYGO) build -size short -o test.elf       ./testdata/cgo
 ifneq ($(OS),Windows_NT)
 	$(TINYGO) build -o test.elf -gc=leaking -scheduler=none examples/serial
 endif

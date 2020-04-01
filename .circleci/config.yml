@@ -22,8 +22,6 @@ commands:
                 clang-<<parameters.llvm>> \
                 libclang-<<parameters.llvm>>-dev \
                 lld-<<parameters.llvm>> \
-                gcc-arm-linux-gnueabihf \
-                gcc-aarch64-linux-gnu \
                 qemu-system-arm \
                 qemu-user \
                 gcc-avr \
@@ -137,10 +135,6 @@ commands:
           command: |
             sudo apt-get update
             sudo apt-get install \
-                gcc-arm-linux-gnueabihf \
-                libc6-dev-armel-cross \
-                gcc-aarch64-linux-gnu \
-                libc6-dev-arm64-cross \
                 qemu-system-arm \
                 qemu-user \
                 gcc-avr \
@@ -205,10 +199,6 @@ commands:
           command: |
             sudo apt-get update
             sudo apt-get install \
-                gcc-arm-linux-gnueabihf \
-                libc6-dev-armel-cross \
-                gcc-aarch64-linux-gnu \
-                libc6-dev-arm64-cross \
                 qemu-system-arm \
                 qemu-user \
                 gcc-avr \

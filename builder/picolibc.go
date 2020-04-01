@@ -11,19 +11,19 @@ import (
 // based on newlib.
 var Picolibc = Library{
 	name: "picolibc",
-	makeHeaders: func(includeDir string) error {
+	makeHeaders: func(target, includeDir string) error {
 		f, err := os.Create(filepath.Join(includeDir, "picolibc.h"))
 		if err != nil {
 			return err
 		}
 		return f.Close()
 	},
-	cflags: func(outTempDir string) []string {
+	cflags: func(target, outTempDir string) []string {
 		picolibcDir := filepath.Join(goenv.Get("TINYGOROOT"), "lib/picolibc/newlib/libc")
 		return []string{"-Werror", "-Wall", "-std=gnu11", "-D_COMPILING_NEWLIB", "-nostdlibinc", "-Xclang", "-internal-isystem", "-Xclang", picolibcDir + "/include", "-I" + picolibcDir + "/tinystdio", "-I" + outTempDir + "/include"}
 	},
 	sourceDir: "lib/picolibc/newlib/libc",
-	sources: func(target string) []string {
+	librarySources: func(target string) []string {
 		return picolibcSources
 	},
 }

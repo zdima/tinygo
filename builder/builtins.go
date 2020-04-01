@@ -158,11 +158,11 @@ var aeabiBuiltins = []string{
 // For more information, see: https://compiler-rt.llvm.org/
 var CompilerRT = Library{
 	name: "compiler-rt",
-	cflags: func(outTempDir string) []string {
-		return []string{"-Werror", "-Wall", "-std=c11", "-nostdlibinc"}
+	cflags: func(target, outTempDir string) []string {
+		return []string{"-Werror", "-Wall", "-std=c11", "-nostdlibinc", "-Wno-unused-command-line-argument"}
 	},
 	sourceDir: "lib/compiler-rt/lib/builtins",
-	sources: func(target string) []string {
+	librarySources: func(target string) []string {
 		builtins := append([]string{}, genericBuiltins...) // copy genericBuiltins
 		if strings.HasPrefix(target, "arm") || strings.HasPrefix(target, "thumb") {
 			builtins = append(builtins, aeabiBuiltins...)

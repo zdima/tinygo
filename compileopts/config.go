@@ -236,6 +236,15 @@ func (c *Config) CFlags() []string {
 			"--sysroot="+path,
 			"-Xclang", "-internal-isystem", "-Xclang", filepath.Join(root, "lib", "picolibc", "newlib", "libc", "include"),
 		)
+	case "musl":
+		root := goenv.Get("TINYGOROOT")
+		path, _ := c.LibcPath("musl")
+		arch := strings.Split(c.Triple(), "-")[0]
+		cflags = append(cflags,
+			"--sysroot="+path,
+			"-Xclang", "-internal-isystem", "-Xclang", filepath.Join(root, "lib", "musl", "arch", arch),
+			"-Xclang", "-internal-isystem", "-Xclang", filepath.Join(root, "lib", "musl", "include"),
+		)
 	case "wasi-libc":
 		root := goenv.Get("TINYGOROOT")
 		cflags = append(cflags, "--sysroot="+root+"/lib/wasi-libc/sysroot")

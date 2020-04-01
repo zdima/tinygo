@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,16 +18,19 @@ type Library struct {
 	name string
 
 	// makeHeaders creates a header include dir for the library
-	makeHeaders func(includeDir string) error
+	makeHeaders func(target, includeDir string) error
 
 	// cflags returns the C flags specific to this library
-	cflags func(outTempDir string) []string
+	cflags func(target, outTempDir string) []string
 
 	// The source directory, relative to TINYGOROOT.
 	sourceDir string
 
 	// The source files, relative to sourceDir.
-	sources func(target string) []string
+	librarySources func(target string) []string
+
+	// The source code for the crt1.o file, relative to sourceDir.
+	crt1Source string
 }
 
 // fullPath returns the full path to the source directory.
@@ -34,9 +38,13 @@ func (l *Library) fullPath() string {
 	return filepath.Join(goenv.Get("TINYGOROOT"), l.sourceDir)
 }
 
-// sourcePaths returns a slice with the full paths to the source files.
+// sourcePaths returns a slice with the full paths to the source (library and
+// crt1) files.
 func (l *Library) sourcePaths(target string) []string {
-	sources := l.sources(target)
+	sources := l.librarySources(target)
+	if l.crt1Source != "" {
+		sources = append([]string{l.crt1Source}, sources...)
+	}
 	paths := make([]string, len(sources))
 	for i, name := range sources {
 		paths[i] = filepath.Join(l.fullPath(), name)
@@ -98,7 +106,7 @@ func (l *Library) load(config *compileopts.Config, tmpdir string) (job *compileJ
 	// Note: -fdebug-prefix-map is necessary to make the output archive
 	// reproducible. Otherwise the temporary directory is stored in the archive
 	// itself, which varies each run.
-	args := append(l.cflags(outtmpdir), "-c", "-Oz", "-g", "-ffunction-sections", "-fdata-sections", "-Wno-macro-redefined", "--target="+target, "-fdebug-prefix-map="+dir+"="+remapDir)
+	args := append(l.cflags(target, outtmpdir), "-c", "-Oz", "-g", "-ffunction-sections", "-fdata-sections", "-Wno-macro-redefined", "--target="+target, "-fdebug-prefix-map="+dir+"="+remapDir)
 	cpu := config.CPU()
 	if cpu != "" {
 		args = append(args, "-mcpu="+cpu)
@@ -123,7 +131,7 @@ func (l *Library) load(config *compileopts.Config, tmpdir string) (job *compileJ
 			// Create an archive of all object files.
 			err := makeArchive(filepath.Join(outtmpdir, "lib.a"), objs)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to make archive for %s: %w", target, err)
 			}
 			// Store this archive in the cache.
 			_, err = cacheStore(outtmpdir, outname, l.sourcePaths(target))
@@ -142,17 +150,40 @@ func (l *Library) load(config *compileopts.Config, tmpdir string) (job *compileJ
 				if err != nil {
 					return err
 				}
-				return l.makeHeaders(includeDir)
+				return l.makeHeaders(target, includeDir)
 			},
 		})
 	}
 
 	// Create jobs to compile all sources. These jobs are depended upon by the
 	// archive job above, so must be run first.
-	for _, srcpath := range l.sourcePaths(target) {
-		srcpath := srcpath // avoid concurrency issues by redefining inside the loop
+	for _, path := range l.librarySources(target) {
+		srcpath := filepath.Join(l.sourceDir, path)
 		objpath := filepath.Join(dir, filepath.Base(srcpath)+".o")
 		objs = append(objs, objpath)
+		job.dependencies = append(job.dependencies, &compileJob{
+			description:  "compile " + srcpath,
+			dependencies: compileDependencies,
+			run: func(*compileJob) error {
+				var compileArgs []string
+				compileArgs = append(compileArgs, args...)
+				compileArgs = append(compileArgs, "-o", objpath, srcpath)
+				err := runCCompiler(compileArgs...)
+				if err != nil {
+					return &commandError{"failed to build", srcpath, err}
+				}
+				return nil
+			},
+		})
+	}
+
+	// Create crt1.o job, if needed.
+	// Add this as a (fake) dependency to the ar file so it gets compiled.
+	// (It could be done in parallel with creating the ar file, but it probably
+	// won't make much of a difference in speed).
+	if l.crt1Source != "" {
+		srcpath := filepath.Join(l.sourceDir, l.crt1Source)
+		objpath := filepath.Join(outtmpdir, "crt1.o")
 		job.dependencies = append(job.dependencies, &compileJob{
 			description:  "compile " + srcpath,
 			dependencies: compileDependencies,

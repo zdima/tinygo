@@ -453,7 +453,7 @@ func Build(pkgName, outpath string, config *compileopts.Config, action func(Buil
 	// Add compiler-rt dependency if needed. Usually this is a simple load from
 	// a cache.
 	if config.Target.RTLib == "compiler-rt" {
-		job, err := CompilerRT.load(config.Triple(), config.CPU(), dir)
+		job, err := CompilerRT.load(config, dir)
 		if err != nil {
 			return err
 		}
@@ -505,11 +505,18 @@ func Build(pkgName, outpath string, config *compileopts.Config, action func(Buil
 	// Add libc dependency if needed.
 	switch config.Target.Libc {
 	case "picolibc":
-		job, err := Picolibc.load(config.Triple(), config.CPU(), dir)
+		job, err := Picolibc.load(config, dir)
 		if err != nil {
 			return err
 		}
 		// The library needs to be compiled (cache miss).
+		linkerDependencies = append(linkerDependencies, job)
+	case "musl":
+		job, err := Musl.load(config, dir)
+		if err != nil {
+			return err
+		}
+		linkerDependencies = append(linkerDependencies, dummyCompileJob(filepath.Join(filepath.Dir(job.result), "crt1.o")))
 		linkerDependencies = append(linkerDependencies, job)
 	case "wasi-libc":
 		path := filepath.Join(root, "lib/wasi-libc/sysroot/lib/wasm32-wasi/libc.a")
@@ -538,12 +545,15 @@ func Build(pkgName, outpath string, config *compileopts.Config, action func(Buil
 			// while we're at it. Relocations can only be compressed when debug
 			// information is stripped.
 			ldflags = append(ldflags, "--strip-debug", "--compress-relocations")
+		} else if config.Target.Linker == "ld.lld" {
+			// ld.lld is also used on Linux.
+			ldflags = append(ldflags, "--strip-debug")
 		} else {
 			switch config.GOOS() {
 			case "linux":
 				// Either real linux or an embedded system (like AVR) that
 				// pretends to be Linux. It's a ELF linker wrapped by GCC in any
-				// case.
+				// case (not ld.lld - that case is handled above).
 				ldflags = append(ldflags, "-Wl,--strip-debug")
 			case "darwin":
 				// MacOS (darwin) doesn't have a linker flag to strip debug
