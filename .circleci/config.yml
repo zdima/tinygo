@@ -97,57 +97,66 @@ commands:
       - run: make fmt-check
   assert-test-linux:
     steps:
+      - run:
+          name: "Install apk dependencies"
+          command: |
+            apk add \
+                sudo git make g++ \
+                qemu-system-arm qemu-arm \
+                gcc-avr avr-libc
+            pwd
       - checkout
       - submodules
-      - run:
-          name: "Install apt dependencies"
-          command: |
-            sudo apt-get install \
-                gcc-arm-linux-gnueabihf \
-                binutils-arm-none-eabi \
-                libc6-dev-armel-cross \
-                gcc-aarch64-linux-gnu \
-                libc6-dev-arm64-cross \
-                qemu-system-arm \
-                qemu-user \
-                gcc-avr \
-                avr-libc
       - install-node
       - restore_cache:
           keys:
-            - go-cache-v2-{{ checksum "go.mod" }}-{{ .Environment.CIRCLE_PREVIOUS_BUILD_NUM }}
-            - go-cache-v2-{{ checksum "go.mod" }}
-      - llvm-source-linux
+            - go-cache-alpine-v2-{{ checksum "go.mod" }}
       - restore_cache:
           keys:
-            - llvm-build-10-linux-v0-assert
+            - llvm-source-alpine-10-v0
+      - run:
+          name: "Fetch LLVM source"
+          command: make llvm-source
+      - save_cache:
+          key: llvm-source-alpine-10-v0
+          paths:
+            - llvm-project
+      - restore_cache:
+          keys:
+            - llvm-build-10-alpine-v0
       - run:
           name: "Build LLVM"
           command: |
             if [ ! -f llvm-build/lib/liblldELF.a ]
             then
               # install dependencies
-              sudo apt-get install cmake clang ninja-build
-              # make build faster
-              export CC=clang
-              export CXX=clang++
+              apk add cmake ninja python3
               # hack ninja to use less jobs
               echo -e '#!/bin/sh\n/usr/bin/ninja -j3 "$@"' > /go/bin/ninja
               chmod +x /go/bin/ninja
               # build!
-              make ASSERT=1 llvm-build
+              make llvm-build ASSERT=1
             fi
       - save_cache:
-          key: llvm-build-10-linux-v0-assert
+          key: llvm-build-10-alpine-v0
           paths:
             llvm-build
-      - run: make ASSERT=1
-      - build-wasi-libc
+      - run: make STATIC=1 ASSERT=1
+      - restore_cache:
+          keys:
+            - wasi-libc-sysroot-alpine-v2
+      - run:
+          name: "Build wasi-libc"
+          command: make wasi-libc
+      - save_cache:
+          key: wasi-libc-sysroot-alpine-v2
+          paths:
+            - lib/wasi-libc/sysroot
       - run:
           name: "Test TinyGo"
-          command: make ASSERT=1 test
+          command: make test STATIC=1 ASSERT=1
       - save_cache:
-          key: go-cache-v2-{{ checksum "go.mod" }}-{{ .Environment.CIRCLE_BUILD_NUM }}
+          key: go-cache-alpine-v2-{{ checksum "go.mod" }}
           paths:
             - ~/.cache/go-build
             - ~/.cache/tinygo
@@ -156,40 +165,40 @@ commands:
       - run: make smoketest TINYGO=build/tinygo
   build-linux:
     steps:
+      - run:
+          name: "Install apk dependencies"
+          command: |
+            apk add \
+                sudo git make g++ \
+                qemu-system-arm qemu-arm \
+                gcc-avr avr-libc
+            pwd
       - checkout
       - submodules
-      - run:
-          name: "Install apt dependencies"
-          command: |
-            sudo apt-get install \
-                gcc-arm-linux-gnueabihf \
-                binutils-arm-none-eabi \
-                libc6-dev-armel-cross \
-                gcc-aarch64-linux-gnu \
-                libc6-dev-arm64-cross \
-                qemu-system-arm \
-                qemu-user \
-                gcc-avr \
-                avr-libc
       - install-node
       - restore_cache:
           keys:
-            - go-cache-v2-{{ checksum "go.mod" }}-{{ .Environment.CIRCLE_PREVIOUS_BUILD_NUM }}
-            - go-cache-v2-{{ checksum "go.mod" }}
-      - llvm-source-linux
+            - go-cache-alpine-v2-{{ checksum "go.mod" }}
       - restore_cache:
           keys:
-            - llvm-build-10-linux-v0
+            - llvm-source-alpine-10-v0
+      - run:
+          name: "Fetch LLVM source"
+          command: make llvm-source
+      - save_cache:
+          key: llvm-source-alpine-10-v0
+          paths:
+            - llvm-project
+      - restore_cache:
+          keys:
+            - llvm-build-10-alpine-v0
       - run:
           name: "Build LLVM"
           command: |
             if [ ! -f llvm-build/lib/liblldELF.a ]
             then
               # install dependencies
-              sudo apt-get install cmake clang ninja-build
-              # make build faster
-              export CC=clang
-              export CXX=clang++
+              apk add cmake ninja python3
               # hack ninja to use less jobs
               echo -e '#!/bin/sh\n/usr/bin/ninja -j3 "$@"' > /go/bin/ninja
               chmod +x /go/bin/ninja
@@ -197,22 +206,31 @@ commands:
               make llvm-build
             fi
       - save_cache:
-          key: llvm-build-10-linux-v0
+          key: llvm-build-10-alpine-v0
           paths:
             llvm-build
-      - build-wasi-libc
+      - restore_cache:
+          keys:
+            - wasi-libc-sysroot-alpine-v2
+      - run:
+          name: "Build wasi-libc"
+          command: make wasi-libc
+      - save_cache:
+          key: wasi-libc-sysroot-alpine-v2
+          paths:
+            - lib/wasi-libc/sysroot
       - run:
           name: "Test TinyGo"
-          command: make test
+          command: make test STATIC=1
       - run:
           name: "Build TinyGo release"
           command: |
-            make release -j3
+            make release -j3 STATIC=1
             cp -p build/release.tar.gz /tmp/tinygo.linux-amd64.tar.gz
       - store_artifacts:
           path: /tmp/tinygo.linux-amd64.tar.gz
       - save_cache:
-          key: go-cache-v2-{{ checksum "go.mod" }}-{{ .Environment.CIRCLE_BUILD_NUM }}
+          key: go-cache-alpine-v2-{{ checksum "go.mod" }}
           paths:
             - ~/.cache/go-build
             - ~/.cache/tinygo
@@ -340,7 +358,7 @@ jobs:
       - assert-test-linux
   build-linux:
     docker:
-      - image: circleci/golang:1.14-stretch
+      - image: golang:1.14-alpine3.11
     steps:
       - build-linux
   build-macos:
@@ -355,10 +373,10 @@ jobs:
 workflows:
   test-all:
     jobs:
-      - test-llvm9-go111
-      - test-llvm10-go112
-      - test-llvm10-go113
-      - test-llvm10-go114
+      #- test-llvm9-go111
+      #- test-llvm10-go112
+      #- test-llvm10-go113
+      #- test-llvm10-go114
       - build-linux
-      - build-macos
+      #- build-macos
       - assert-test-linux

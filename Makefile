@@ -105,6 +105,9 @@ ifneq ("$(wildcard $(LLVM_BUILDDIR)/bin/llvm-config*)","")
     CGO_CPPFLAGS=$(shell $(LLVM_BUILDDIR)/bin/llvm-config --cppflags) -I$(abspath $(LLVM_BUILDDIR))/tools/clang/include -I$(abspath $(CLANG_SRC))/include -I$(abspath $(LLD_SRC))/include
     CGO_CXXFLAGS=-std=c++14
     CGO_LDFLAGS+=$(LIBCLANG_PATH) -std=c++14 -L$(abspath $(LLVM_BUILDDIR)/lib) $(CLANG_LIBS) $(LLD_LIBS) $(shell $(LLVM_BUILDDIR)/bin/llvm-config --ldflags --libs --system-libs $(LLVM_COMPONENTS)) -lstdc++ $(CGO_LDFLAGS_EXTRA)
+    ifeq (1, $(STATIC))
+        CGO_LDFLAGS += -static -no-pie
+    endif
 endif
 
 
@@ -158,7 +161,7 @@ $(LLVM_BUILDDIR)/build.ninja: llvm-source
 
 # Build LLVM.
 $(LLVM_BUILDDIR): $(LLVM_BUILDDIR)/build.ninja
-	cd $(LLVM_BUILDDIR); ninja
+	cd $(LLVM_BUILDDIR); ninja lib/libclang.a lib/libLLVMRuntimeDyld.a lib/libLLVMExecutionEngine.a lib/libLLVMInterpreter.a lib/libLLVMCoroutines.a lib/libLLVMCoverage.a lib/libLLVMMCJIT.a lib/libclangCodeGen.a lib/libclangDynamicASTMatchers.a lib/libclangFrontendTool.a lib/libclangHandleCXX.a lib/libclangHandleLLVM.a lib/libclangRewriteFrontend.a lib/libclangStaticAnalyzerCheckers.a lib/libclangStaticAnalyzerCore.a lib/libclangStaticAnalyzerFrontend.a lib/libclangToolingASTDiff.a lib/liblldCOFF.a lib/liblldDriver.a lib/liblldELF.a lib/liblldMinGW.a lib/liblldWasm.a llvm-config clang llvm-ar llvm-nm
 
 
 # Build wasi-libc sysroot
@@ -171,10 +174,10 @@ lib/wasi-libc/sysroot/lib/wasm32-wasi/libc.a:
 # Build the Go compiler.
 tinygo:
 	@if [ ! -f "$(LLVM_BUILDDIR)/bin/llvm-config" ]; then echo "Fetch and build LLVM first by running:"; echo "  make llvm-source"; echo "  make $(LLVM_BUILDDIR)"; exit 1; fi
-	CGO_CPPFLAGS="$(CGO_CPPFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" $(GO) build -o build/tinygo$(EXE) -tags byollvm .
+	CGO_CPPFLAGS="$(CGO_CPPFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" $(GO) build -o build/tinygo$(EXE) -tags "byollvm osusergo" .
 
 test: wasi-libc
-	CGO_CPPFLAGS="$(CGO_CPPFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" $(GO) test -v -tags byollvm ./cgo ./compileopts ./interp ./transform .
+	CGO_CPPFLAGS="$(CGO_CPPFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" $(GO) test -v -tags "byollvm osusergo" ./cgo ./compileopts ./interp ./transform .
 
 tinygo-test:
 	cd tests/tinygotest && tinygo test
