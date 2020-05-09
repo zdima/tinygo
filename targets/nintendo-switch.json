@@ -1,0 +1,31 @@
+{
+  "llvm-target": "aarch64",
+  "build-tags": ["nintendoswitch", "arm64"],
+  "goos": "linux",
+  "goarch": "arm64",
+  "compiler": "clang",
+  "linker": "ld.lld",
+  "rtlib": "compiler-rt",
+  "libc": "picolibc",
+  "gc": "conservative",
+  "relocation-model": "pic",
+  "cflags": [
+    "-target", "aarch64-none-linux-gnu",
+    "-mtune=cortex-a53",
+    "-g",
+    "-fPIE",
+    "-Wall",
+    "-ffunction-sections",
+    "-D__SWITCH__",
+    "-fno-rtti",
+    "-fno-exceptions"
+  ],
+  "ldflags": [
+    "-g"
+  ],
+  "linkerscript": "targets/nintendo-switch.ld",
+  "extra-files": [
+    "targets/nintendo-switch.s",
+    "src/runtime/runtime_nintendoswitch.s"
+  ]
+}
