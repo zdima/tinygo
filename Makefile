@@ -335,6 +335,7 @@ endif
 	@$(MD5SUM) test.hex
 	$(TINYGO) build             -o wasm.wasm -target=wasm               examples/wasm/export
 	$(TINYGO) build             -o wasm.wasm -target=wasm               examples/wasm/main
+	$(TINYGO) build             -o test.elf  -target=nintendo-switch    examples/nintendoswitch
 
 wasmtest:
 	$(GO) test ./tests/wasm
