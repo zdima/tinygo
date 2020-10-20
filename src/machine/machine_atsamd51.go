@@ -11,6 +11,7 @@ import (
 	"device/arm"
 	"device/sam"
 	"runtime/interrupt"
+	"runtime/volatile"
 	"unsafe"
 )
 
@@ -902,7 +903,13 @@ type UART struct {
 
 var (
 	// UART0 is actually a USB CDC interface.
-	UART0 = USBCDC{Buffer: NewRingBuffer()}
+	UART0 = USBCDC{
+		Buffer: NewRingBuffer(),
+		TxBuffer: [2]*RingBuffer16{
+			NewRingBuffer16(),
+			NewRingBuffer16(),
+		},
+	}
 )
 
 const (
@@ -1708,38 +1715,76 @@ func (pwm PWM) getMux() PinMode {
 
 // USBCDC is the USB CDC aka serial over USB interface on the SAMD21.
 type USBCDC struct {
-	Buffer *RingBuffer
+	Buffer   *RingBuffer
+	TxBuffer [2]*RingBuffer16
+	TxIdx    volatile.Register8
+	waitTxc  bool
+}
+
+// Flush flushes buffered data.
+func (usbcdc *USBCDC) Flush() error {
+	BCM2.Toggle()
+	defer func() {
+		BCM2.Toggle()
+	}()
+	if usbLineInfo.lineState > 0 {
+		idx := usbcdc.TxIdx.Get()
+		sz := usbcdc.TxBuffer[idx].Used()
+		if 0 < sz {
+
+			if usbcdc.waitTxc {
+				// waiting for the next flush(), because the transmission is not complete
+				BCM4.Toggle()
+				return nil
+			}
+			usbcdc.waitTxc = true
+
+			// set the data
+			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].ADDR.Set(uint32(uintptr(unsafe.Pointer(&usbcdc.TxBuffer[idx].buffer))))
+			usbcdc.TxBuffer[1-idx].Clear()
+			usbcdc.TxIdx.Set(1 - idx)
+
+			// clean multi packet size of bytes already sent
+			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.ClearBits(usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Mask << usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Pos)
+
+			// set count of bytes to be sent
+			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.ClearBits(usb_DEVICE_PCKSIZE_BYTE_COUNT_Mask << usb_DEVICE_PCKSIZE_BYTE_COUNT_Pos)
+			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.SetBits((uint32(sz) & usb_DEVICE_PCKSIZE_BYTE_COUNT_Mask) << usb_DEVICE_PCKSIZE_BYTE_COUNT_Pos)
+
+			// clear transfer complete flag
+			setEPINTFLAG(usb_CDC_ENDPOINT_IN, sam.USB_DEVICE_ENDPOINT_EPINTFLAG_TRCPT1)
+
+			// send data by setting bank ready
+			setEPSTATUSSET(usb_CDC_ENDPOINT_IN, sam.USB_DEVICE_ENDPOINT_EPSTATUSSET_BK1RDY)
+			BCM22.Toggle()
+		}
+	}
+	return nil
 }
 
 // WriteByte writes a byte of data to the USB CDC interface.
-func (usbcdc USBCDC) WriteByte(c byte) error {
+func (usbcdc *USBCDC) WriteByte(c byte) error {
 	// Supposedly to handle problem with Windows USB serial ports?
 	if usbLineInfo.lineState > 0 {
-		// set the data
-		udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN][0] = c
+		BCM27.High()
+		for {
+			mask := interrupt.Disable()
 
-		usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].ADDR.Set(uint32(uintptr(unsafe.Pointer(&udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN]))))
+			// not work...
+			//ok := usbcdc.TxBuffer[usbcdc.TxIdx.Get()].Put(c)
 
-		// clean multi packet size of bytes already sent
-		usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.ClearBits(usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Mask << usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Pos)
+			// work
+			ok := usbcdc.TxBuffer[UART0.TxIdx.Get()].Put(c)
+			interrupt.Restore(mask)
 
-		// set count of bytes to be sent
-		usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.SetBits((1 & usb_DEVICE_PCKSIZE_BYTE_COUNT_Mask) << usb_DEVICE_PCKSIZE_BYTE_COUNT_Pos)
-
-		// clear transfer complete flag
-		setEPINTFLAG(usb_CDC_ENDPOINT_IN, sam.USB_DEVICE_ENDPOINT_EPINTFLAG_TRCPT1)
-
-		// send data by setting bank ready
-		setEPSTATUSSET(usb_CDC_ENDPOINT_IN, sam.USB_DEVICE_ENDPOINT_EPSTATUSSET_BK1RDY)
-
-		// wait for transfer to complete
-		timeout := 3000
-		for (getEPINTFLAG(usb_CDC_ENDPOINT_IN) & sam.USB_DEVICE_ENDPOINT_EPINTFLAG_TRCPT1) == 0 {
-			timeout--
-			if timeout == 0 {
-				return errUSBCDCWriteByteTimeout
+			if ok {
+				break
+			} else {
+				//BCM4.Toggle()
+				//usbcdc.Flush()
 			}
 		}
+		BCM27.Low()
 	}
 
 	return nil
@@ -1784,7 +1829,7 @@ var (
 )
 
 // Configure the USB CDC interface. The config is here for compatibility with the UART interface.
-func (usbcdc USBCDC) Configure(config UARTConfig) {
+func (usbcdc *USBCDC) Configure(config UARTConfig) {
 	// reset USB interface
 	sam.USB_DEVICE.CTRLA.SetBits(sam.USB_DEVICE_CTRLA_SWRST)
 	for sam.USB_DEVICE.SYNCBUSY.HasBits(sam.USB_DEVICE_SYNCBUSY_SWRST) ||
@@ -1946,9 +1991,16 @@ func handleUSBIRQ(interrupt.Interrupt) {
 			case usb_CDC_ENDPOINT_IN, usb_CDC_ENDPOINT_ACM:
 				setEPSTATUSCLR(i, sam.USB_DEVICE_ENDPOINT_EPSTATUSCLR_BK1RDY)
 				setEPINTFLAG(i, sam.USB_DEVICE_ENDPOINT_EPINTFLAG_TRCPT1)
+
+				if i == usb_CDC_ENDPOINT_IN {
+					BCM22.Toggle()
+					UART0.waitTxc = false
+				}
 			}
 		}
 	}
+
+	UART0.Flush()
 }
 
 func initEndpoint(ep, config uint32) {
