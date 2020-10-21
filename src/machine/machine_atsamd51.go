@@ -904,7 +904,7 @@ var (
 	// UART0 is actually a USB CDC interface.
 	UART0 = USBCDC{
 		Buffer:   NewRingBuffer(),
-		TxBuffer: NewRingBuffer(),
+		TxBuffer: NewRingBuffer16(),
 	}
 )
 
@@ -1712,27 +1712,36 @@ func (pwm PWM) getMux() PinMode {
 // USBCDC is the USB CDC aka serial over USB interface on the SAMD21.
 type USBCDC struct {
 	Buffer   *RingBuffer
-	TxBuffer *RingBuffer
+	TxBuffer *RingBuffer16
 	waitTxc  bool
 }
 
+var udd_ep_in_cache_buffer_cdc [1024]byte
+
 // Flush flushes buffered data.
 func (usbcdc *USBCDC) Flush() error {
+	BCM2.Toggle()
+	defer func() {
+		BCM2.Toggle()
+	}()
 	if usbLineInfo.lineState > 0 {
 		sz := usbcdc.TxBuffer.Used()
 		if 0 < sz {
 
 			if usbcdc.waitTxc {
 				// waiting for the next flush(), because the transmission is not complete
+				BCM4.Toggle()
 				return nil
 			}
 			usbcdc.waitTxc = true
 
 			// set the data
-			for i := uint8(0); i < sz; i++ {
-				udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN][i], _ = usbcdc.TxBuffer.Get()
+			for i := uint16(0); i < sz; i++ {
+				//udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN][i], _ = usbcdc.TxBuffer.Get()
+				udd_ep_in_cache_buffer_cdc[i], _ = usbcdc.TxBuffer.Get()
 			}
-			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].ADDR.Set(uint32(uintptr(unsafe.Pointer(&udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN]))))
+			//usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].ADDR.Set(uint32(uintptr(unsafe.Pointer(&udd_ep_in_cache_buffer[usb_CDC_ENDPOINT_IN]))))
+			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].ADDR.Set(uint32(uintptr(unsafe.Pointer(&udd_ep_in_cache_buffer_cdc))))
 
 			// clean multi packet size of bytes already sent
 			usbEndpointDescriptors[usb_CDC_ENDPOINT_IN].DeviceDescBank[1].PCKSIZE.ClearBits(usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Mask << usb_DEVICE_PCKSIZE_MULTI_PACKET_SIZE_Pos)
