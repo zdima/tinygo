@@ -260,6 +260,10 @@ func alloc(size uintptr) unsafe.Pointer {
 		return unsafe.Pointer(&zeroSizedAlloc)
 	}
 
+	if interrupt.In() {
+		runtimePanic("alloc in interrupt")
+	}
+
 	neededBlocks := (size + (bytesPerBlock - 1)) / bytesPerBlock
 
 	// Continue looping until a run of free blocks has been found that fits the
