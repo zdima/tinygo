@@ -53,7 +53,7 @@ func (rb *RingBuffer) Clear() {
 
 // ---------------------
 
-const bufferSize16 = 512
+const bufferSize16 = 64
 
 // RingBuffer16 is ring buffer implementation inspired by post at
 // https://www.embeddedrelated.com/showthread/comp.arch.embedded/77084-1.php
@@ -96,8 +96,8 @@ func (rb *RingBuffer16) Get() (byte, bool) {
 
 // Clear resets the head and tail pointer to zero.
 func (rb *RingBuffer16) Clear() {
-	rb.head.Set(0)
-	rb.tail.Set(0)
+	rb.head.Set(bufferSize16 - 1)
+	rb.tail.Set(bufferSize16 - 1)
 }
 
 // ---------------------
