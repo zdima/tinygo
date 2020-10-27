@@ -10,8 +10,13 @@ package machine
 import (
 	"device/arm"
 	"device/sam"
+	"errors"
 	"runtime/interrupt"
 	"unsafe"
+)
+
+var (
+	ErrUSBTransferTimeout = errors.New("machine: USB transfer timeout")
 )
 
 type PinMode uint8
@@ -1736,19 +1741,23 @@ func initEndpoint(ep, config uint32) {
 	}
 }
 
+var cmdSendPacket [7]byte
+var cmdReceivePacket [7]byte
+
 func handleStandardSetup(setup usbSetup) bool {
 	switch setup.bRequest {
 	case usb_GET_STATUS:
-		buf := []byte{0, 0}
+		cmdSendPacket[0] = 0
+		cmdSendPacket[1] = 0
 
 		if setup.bmRequestType != 0 { // endpoint
 			// TODO: actually check if the endpoint in question is currently halted
 			if isEndpointHalt {
-				buf[0] = 1
+				cmdSendPacket[0] = 1
 			}
 		}
 
-		sendUSBPacket(0, buf)
+		sendUSBPacket(0, cmdSendPacket[:2])
 		return true
 
 	case usb_CLEAR_FEATURE:
@@ -1803,8 +1812,8 @@ func handleStandardSetup(setup usbSetup) bool {
 		return false
 
 	case usb_GET_CONFIGURATION:
-		buff := []byte{usbConfiguration}
-		sendUSBPacket(0, buff)
+		cmdSendPacket[0] = usbConfiguration
+		sendUSBPacket(0, cmdSendPacket[:1])
 		return true
 
 	case usb_SET_CONFIGURATION:
@@ -1828,8 +1837,8 @@ func handleStandardSetup(setup usbSetup) bool {
 		}
 
 	case usb_GET_INTERFACE:
-		buff := []byte{usbSetInterface}
-		sendUSBPacket(0, buff)
+		cmdSendPacket[0] = usbSetInterface
+		sendUSBPacket(0, cmdSendPacket[:1])
 		return true
 
 	case usb_SET_INTERFACE:
@@ -1846,27 +1855,30 @@ func handleStandardSetup(setup usbSetup) bool {
 func cdcSetup(setup usbSetup) bool {
 	if setup.bmRequestType == usb_REQUEST_DEVICETOHOST_CLASS_INTERFACE {
 		if setup.bRequest == usb_CDC_GET_LINE_CODING {
-			b := make([]byte, 7)
-			b[0] = byte(usbLineInfo.dwDTERate)
-			b[1] = byte(usbLineInfo.dwDTERate >> 8)
-			b[2] = byte(usbLineInfo.dwDTERate >> 16)
-			b[3] = byte(usbLineInfo.dwDTERate >> 24)
-			b[4] = byte(usbLineInfo.bCharFormat)
-			b[5] = byte(usbLineInfo.bParityType)
-			b[6] = byte(usbLineInfo.bDataBits)
+			cmdSendPacket[0] = byte(usbLineInfo.dwDTERate)
+			cmdSendPacket[1] = byte(usbLineInfo.dwDTERate >> 8)
+			cmdSendPacket[2] = byte(usbLineInfo.dwDTERate >> 16)
+			cmdSendPacket[3] = byte(usbLineInfo.dwDTERate >> 24)
+			cmdSendPacket[4] = byte(usbLineInfo.bCharFormat)
+			cmdSendPacket[5] = byte(usbLineInfo.bParityType)
+			cmdSendPacket[6] = byte(usbLineInfo.bDataBits)
 
-			sendUSBPacket(0, b)
+			sendUSBPacket(0, cmdSendPacket[:7])
 			return true
 		}
 	}
 
 	if setup.bmRequestType == usb_REQUEST_HOSTTODEVICE_CLASS_INTERFACE {
 		if setup.bRequest == usb_CDC_SET_LINE_CODING {
-			b := receiveUSBControlPacket()
-			usbLineInfo.dwDTERate = uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
-			usbLineInfo.bCharFormat = b[4]
-			usbLineInfo.bParityType = b[5]
-			usbLineInfo.bDataBits = b[6]
+			_, err := receiveUSBControlPacket(cmdReceivePacket[:])
+			if err != nil {
+				return false
+			}
+
+			usbLineInfo.dwDTERate = uint32(cmdReceivePacket[0]) | uint32(cmdReceivePacket[1])<<8 | uint32(cmdReceivePacket[2])<<16 | uint32(cmdReceivePacket[3])<<24
+			usbLineInfo.bCharFormat = cmdReceivePacket[4]
+			usbLineInfo.bParityType = cmdReceivePacket[5]
+			usbLineInfo.bDataBits = cmdReceivePacket[6]
 		}
 
 		if setup.bRequest == usb_CDC_SET_CONTROL_LINE_STATE {
@@ -1909,7 +1921,7 @@ func sendUSBPacket(ep uint32, data []byte) {
 	usbEndpointDescriptors[ep].DeviceDescBank[1].PCKSIZE.SetBits(uint32((len(data) & usb_DEVICE_PCKSIZE_BYTE_COUNT_Mask) << usb_DEVICE_PCKSIZE_BYTE_COUNT_Pos))
 }
 
-func receiveUSBControlPacket() []byte {
+func receiveUSBControlPacket(data []byte) (n int, err error) {
 	// address
 	usbEndpointDescriptors[0].DeviceDescBank[0].ADDR.Set(uint32(uintptr(unsafe.Pointer(&udd_ep_out_cache_buffer[0]))))
 
@@ -1924,7 +1936,7 @@ func receiveUSBControlPacket() []byte {
 	for (getEPSTATUS(0) & sam.USB_DEVICE_EPSTATUS_BK0RDY) == 0 {
 		timeout--
 		if timeout == 0 {
-			return []byte{}
+			return 0, ErrUSBTransferTimeout
 		}
 	}
 
@@ -1933,7 +1945,7 @@ func receiveUSBControlPacket() []byte {
 	for (getEPINTFLAG(0) & sam.USB_DEVICE_EPINTFLAG_TRCPT0) == 0 {
 		timeout--
 		if timeout == 0 {
-			return []byte{}
+			return 0, ErrUSBTransferTimeout
 		}
 	}
 
@@ -1941,10 +1953,8 @@ func receiveUSBControlPacket() []byte {
 	bytesread := uint32((usbEndpointDescriptors[0].DeviceDescBank[0].PCKSIZE.Get() >>
 		usb_DEVICE_PCKSIZE_BYTE_COUNT_Pos) & usb_DEVICE_PCKSIZE_BYTE_COUNT_Mask)
 
-	data := make([]byte, bytesread)
-	copy(data, udd_ep_out_cache_buffer[0][:])
-
-	return data
+	copy(data, udd_ep_out_cache_buffer[0][:bytesread])
+	return int(bytesread), nil
 }
 
 func handleEndpoint(ep uint32) {
