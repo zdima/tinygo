@@ -53,7 +53,11 @@ func (rb *RingBuffer) Clear() {
 
 // ---------------------
 
-const bufferSize16 = 64
+// 120MHz ok : 10240 byte == 13.961ms
+const bufferSize16 = 512 + 256
+
+// 200MHz ok : 10240 byte ==  9.754ms
+//const bufferSize16 = 1024 + 128
 
 // RingBuffer16 is ring buffer implementation inspired by post at
 // https://www.embeddedrelated.com/showthread/comp.arch.embedded/77084-1.php
