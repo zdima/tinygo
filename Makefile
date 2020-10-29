@@ -205,6 +205,7 @@ TEST_PACKAGES = \
 	math/cmplx \
 	testing \
 	text/scanner \
+	unicode/utf16 \
 	unicode/utf8 \
 
 # Test known-working standard library packages.
