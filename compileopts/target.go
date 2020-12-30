@@ -44,6 +44,7 @@ type TargetSpec struct {
 	FlashCommand     string   `json:"flash-command"`
 	GDB              string   `json:"gdb"`
 	PortReset        string   `json:"flash-1200-bps-reset"`
+	PortResetDelay   string   `json:"flash-1200-bps-reset-delay"`
 	FlashMethod      string   `json:"flash-method"`
 	FlashVolume      string   `json:"msd-volume-name"`
 	FlashFilename    string   `json:"msd-firmware-name"`

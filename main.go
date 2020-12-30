@@ -79,7 +79,7 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	destination, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, st.Mode())
+	destination, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, st.Mode())
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func Build(pkgName, outpath string, options *compileopts.Options) error {
 				return err
 			}
 			defer inf.Close()
-			outf, err := os.OpenFile(outpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+			outf, err := os.OpenFile(outpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 			if err != nil {
 				return err
 			}
@@ -246,8 +246,13 @@ func Flash(pkgName, port string, options *compileopts.Options) error {
 			if err != nil {
 				return &commandError{"failed to reset port", result.Binary, err}
 			}
+
 			// give the target MCU a chance to restart into bootloader
-			time.Sleep(3 * time.Second)
+			portResetDelay := 3
+			if config.Target.PortResetDelay != "" {
+				portResetDelay, _ = strconv.Atoi(config.Target.PortResetDelay)
+			}
+			time.Sleep(time.Duration(portResetDelay) * time.Second)
 		}
 
 		// this flashing method copies the binary data to a Mass Storage Device (msd)
