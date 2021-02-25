@@ -67,25 +67,12 @@ func moveFile(src, dst string) error {
 // copyFile copies the given file from src to dst. It can copy over
 // a possibly already existing file at the destination.
 func copyFile(src, dst string) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-	st, err := source.Stat()
+	data, err := ioutil.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
-	destination, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, st.Mode())
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	return err
+	return ioutil.WriteFile(dst, data, 0755)
 }
 
 // executeCommand is a simple wrapper to exec.Cmd
