@@ -321,7 +321,7 @@ func Flash(pkgName, port string, options *compileopts.Options) error {
 			if err != nil {
 				return err
 			}
-			args = append(args, "-c", "program "+filepath.ToSlash(result.Binary)+" reset exit")
+			args = append(args, "-c", "program "+filepath.ToSlash(result.Binary)+" verify reset exit")
 			cmd := executeCommand(config.Options, "openocd", args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
