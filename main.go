@@ -842,21 +842,32 @@ func getDefaultPort(portFlag string, usbInterfaces []string) (port string, err e
 }
 
 func usage() {
+	version := goenv.Version
+	if strings.HasSuffix(goenv.Version, "-dev") && gitSha1 != "" {
+		version += "-" + gitSha1
+	}
+
 	fmt.Fprintln(os.Stderr, "TinyGo is a Go compiler for small places.")
-	fmt.Fprintln(os.Stderr, "version:", goenv.Version)
+	fmt.Fprintln(os.Stderr, "version:", version)
 	fmt.Fprintf(os.Stderr, "usage: %s command [-printir] [-target=<target>] -o <output> <input>\n", os.Args[0])
 	fmt.Fprintln(os.Stderr, "\ncommands:")
-	fmt.Fprintln(os.Stderr, "  build: compile packages and dependencies")
-	fmt.Fprintln(os.Stderr, "  run:   compile and run immediately")
-	fmt.Fprintln(os.Stderr, "  test:  test packages")
-	fmt.Fprintln(os.Stderr, "  flash: compile and flash to the device")
-	fmt.Fprintln(os.Stderr, "  gdb:   run/flash and immediately enter GDB")
-	fmt.Fprintln(os.Stderr, "  env:   list environment variables used during build")
-	fmt.Fprintln(os.Stderr, "  list:  run go list using the TinyGo root")
-	fmt.Fprintln(os.Stderr, "  clean: empty cache directory ("+goenv.Get("GOCACHE")+")")
-	fmt.Fprintln(os.Stderr, "  help:  print this help text")
-	fmt.Fprintln(os.Stderr, "\nflags:")
-	flag.PrintDefaults()
+	fmt.Fprintln(os.Stderr, "  build:   compile packages and dependencies")
+	fmt.Fprintln(os.Stderr, "  run:     compile and run immediately")
+	fmt.Fprintln(os.Stderr, "  test:    test packages")
+	fmt.Fprintln(os.Stderr, "  flash:   compile and flash to the device")
+	fmt.Fprintln(os.Stderr, "  gdb:     run/flash and immediately enter GDB")
+	fmt.Fprintln(os.Stderr, "  env:     list environment variables used during build")
+	fmt.Fprintln(os.Stderr, "  list:    run go list using the TinyGo root")
+	fmt.Fprintln(os.Stderr, "  clean:   empty cache directory ("+goenv.Get("GOCACHE")+")")
+	fmt.Fprintln(os.Stderr, "  targets: list targets")
+	fmt.Fprintln(os.Stderr, "  info:    show info for specified target")
+	fmt.Fprintln(os.Stderr, "  version: show version")
+	fmt.Fprintln(os.Stderr, "  help:    print this help text")
+
+	if flag.Parsed() {
+		fmt.Fprintln(os.Stderr, "\nflags:")
+		flag.PrintDefaults()
+	}
 }
 
 // try to make the path relative to the current working directory. If any error
