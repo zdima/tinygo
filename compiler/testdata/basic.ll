@@ -6,7 +6,7 @@ target triple = "wasm32--wasi"
 %main.kv = type { float }
 %main.kv.0 = type { i8 }
 
-declare noalias nonnull i8* @runtime.alloc(i32, i8*, i8*)
+declare noalias nonnull i8* @runtime.alloc(i32, i8*, i8*, i8*)
 
 define hidden void @main.init(i8* %context, i8* %parentHandle) unnamed_addr {
 entry:
