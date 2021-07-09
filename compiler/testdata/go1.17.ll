@@ -41,7 +41,7 @@ declare void @runtime.sliceToArrayPointerPanic(i8*, i8*)
 
 define hidden [4 x i32]* @main.SliceToArrayConst(i8* %context, i8* %parentHandle) unnamed_addr {
 entry:
-  %makeslice = call i8* @runtime.alloc(i32 24, i8* null, i8* undef, i8* null)
+  %makeslice = call i8* @runtime.alloc(i32 24, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   br i1 false, label %slicetoarray.throw, label %slicetoarray.next
 
 slicetoarray.throw:                               ; preds = %entry

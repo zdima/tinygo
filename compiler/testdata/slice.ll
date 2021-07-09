@@ -39,7 +39,7 @@ declare void @runtime.lookupPanic(i8*, i8*)
 
 define hidden { i32*, i32, i32 } @main.sliceAppendValues(i32* %ints.data, i32 %ints.len, i32 %ints.cap, i8* %context, i8* %parentHandle) unnamed_addr {
 entry:
-  %varargs = call i8* @runtime.alloc(i32 12, i8* null, i8* undef, i8* null)
+  %varargs = call i8* @runtime.alloc(i32 12, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   %0 = bitcast i8* %varargs to i32*
   store i32 1, i32* %0, align 4
   %1 = getelementptr inbounds i8, i8* %varargs, i32 4
@@ -97,7 +97,7 @@ slice.throw:                                      ; preds = %entry
   unreachable
 
 slice.next:                                       ; preds = %entry
-  %makeslice.buf = call i8* @runtime.alloc(i32 %len, i8* null, i8* undef, i8* null)
+  %makeslice.buf = call i8* @runtime.alloc(i32 %len, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   %0 = insertvalue { i8*, i32, i32 } undef, i8* %makeslice.buf, 0
   %1 = insertvalue { i8*, i32, i32 } %0, i32 %len, 1
   %2 = insertvalue { i8*, i32, i32 } %1, i32 %len, 2
@@ -117,7 +117,7 @@ slice.throw:                                      ; preds = %entry
 
 slice.next:                                       ; preds = %entry
   %makeslice.cap = shl i32 %len, 1
-  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* null, i8* undef, i8* null)
+  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   %makeslice.array = bitcast i8* %makeslice.buf to i16*
   %0 = insertvalue { i16*, i32, i32 } undef, i16* %makeslice.array, 0
   %1 = insertvalue { i16*, i32, i32 } %0, i32 %len, 1
@@ -136,7 +136,7 @@ slice.throw:                                      ; preds = %entry
 
 slice.next:                                       ; preds = %entry
   %makeslice.cap = mul i32 %len, 3
-  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* null, i8* undef, i8* null)
+  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   %makeslice.array = bitcast i8* %makeslice.buf to [3 x i8]*
   %0 = insertvalue { [3 x i8]*, i32, i32 } undef, [3 x i8]* %makeslice.array, 0
   %1 = insertvalue { [3 x i8]*, i32, i32 } %0, i32 %len, 1
@@ -155,7 +155,7 @@ slice.throw:                                      ; preds = %entry
 
 slice.next:                                       ; preds = %entry
   %makeslice.cap = shl i32 %len, 2
-  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* null, i8* undef, i8* null)
+  %makeslice.buf = call i8* @runtime.alloc(i32 %makeslice.cap, i8* nonnull inttoptr (i32 3 to i8*), i8* undef, i8* null)
   %makeslice.array = bitcast i8* %makeslice.buf to i32*
   %0 = insertvalue { i32*, i32, i32 } undef, i32* %makeslice.array, 0
   %1 = insertvalue { i32*, i32, i32 } %0, i32 %len, 1
