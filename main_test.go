@@ -327,9 +327,6 @@ func runTestWithConfig(name, target string, t *testing.T, options compileopts.Op
 		}
 	}()
 	err = cmd.Wait()
-	if _, ok := err.(*exec.ExitError); ok && target != "" {
-		err = nil // workaround for QEMU
-	}
 	close(runComplete)
 
 	if ranTooLong {
