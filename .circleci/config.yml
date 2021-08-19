@@ -379,12 +379,12 @@ jobs:
           llvm: "11"
   assert-test-linux:
     docker:
-      - image: circleci/golang:1.16-stretch
+      - image: cimg/go:1.16.7
     steps:
       - assert-test-linux
   build-linux:
     docker:
-      - image: circleci/golang:1.16-stretch
+      - image: cimg/go:1.16.7
     steps:
       - build-linux
   build-macos:
