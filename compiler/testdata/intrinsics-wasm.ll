@@ -16,7 +16,7 @@ entry:
   ret double %0
 }
 
-; Function Attrs: nounwind readnone speculatable willreturn
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
 declare double @llvm.sqrt.f64(double) #0
 
 define hidden double @main.myTrunc(double %x, i8* %context, i8* %parentHandle) unnamed_addr {
@@ -25,7 +25,7 @@ entry:
   ret double %0
 }
 
-; Function Attrs: nounwind readnone speculatable willreturn
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
 declare double @llvm.trunc.f64(double) #0
 
-attributes #0 = { nounwind readnone speculatable willreturn }
+attributes #0 = { nofree nosync nounwind readnone speculatable willreturn }

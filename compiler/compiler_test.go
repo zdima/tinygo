@@ -40,6 +40,13 @@ func TestCompiler(t *testing.T) {
 		t.Skip("compiler tests require LLVM 11 or above, got LLVM ", llvm.Version)
 	}
 
+	// Determine Go minor version (e.g. 16 in go1.16.3).
+	_, goMinor, err := goenv.GetGorootVersion(goenv.Get("GOROOT"))
+	if err != nil {
+		t.Fatal("could not read Go version:", err)
+	}
+
+	// Determine which tests to run, depending on the Go and LLVM versions.
 	tests := []testCase{
 		{"basic.go", ""},
 		{"pointer.go", ""},
@@ -51,15 +58,12 @@ func TestCompiler(t *testing.T) {
 		{"pragma.go", ""},
 		{"goroutine.go", "wasm"},
 		{"goroutine.go", "cortex-m-qemu"},
-		{"intrinsics.go", "cortex-m-qemu"},
-		{"intrinsics.go", "wasm"},
 	}
-
-	_, minor, err := goenv.GetGorootVersion(goenv.Get("GOROOT"))
-	if err != nil {
-		t.Fatal("could not read Go version:", err)
+	if llvmMajor >= 12 {
+		tests = append(tests, testCase{"intrinsics.go", "cortex-m-qemu"})
+		tests = append(tests, testCase{"intrinsics.go", "wasm"})
 	}
-	if minor >= 17 {
+	if goMinor >= 17 {
 		tests = append(tests, testCase{"go1.17.go", ""})
 	}
 
