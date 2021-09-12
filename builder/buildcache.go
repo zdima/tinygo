@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,14 +46,15 @@ func cacheLoad(name string, sourceFiles []string) (string, error) {
 	if cacheStat.ModTime().After(sourceTimestamp) {
 		return cachepath, nil
 	} else {
-		os.Remove(cachepath)
+		os.RemoveAll(cachepath)
 		// stale cache
 		return "", nil
 	}
 }
 
-// Store the file located at tmppath in the cache with the given name. The
-// tmppath may or may not be gone afterwards.
+// Store the file or directory located at tmppath in the cache with the given
+// name. It must already be located somewhere in the cache dir (or at least on
+// the same filesytem).
 func cacheStore(tmppath, name string, sourceFiles []string) (string, error) {
 	// get the last modified time
 	if len(sourceFiles) == 0 {
@@ -69,37 +69,9 @@ func cacheStore(tmppath, name string, sourceFiles []string) (string, error) {
 		return "", err
 	}
 	cachepath := filepath.Join(dir, name)
-	err = copyFile(tmppath, cachepath)
+	err = os.Rename(tmppath, cachepath)
 	if err != nil {
 		return "", err
 	}
 	return cachepath, nil
-}
-
-// copyFile copies the given file from src to dst. It can copy over
-// a possibly already existing file at the destination.
-func copyFile(src, dst string) error {
-	inf, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer inf.Close()
-	outpath := dst + ".tmp"
-	outf, err := os.Create(outpath)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(outf, inf)
-	if err != nil {
-		os.Remove(outpath)
-		return err
-	}
-
-	err = outf.Close()
-	if err != nil {
-		return err
-	}
-
-	return os.Rename(dst+".tmp", dst)
 }
