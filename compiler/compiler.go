@@ -23,7 +23,7 @@ import (
 // Version of the compiler pacakge. Must be incremented each time the compiler
 // package changes in a way that affects the generated LLVM module.
 // This version is independent of the TinyGo version number.
-const Version = 18 // last change: fix duplicated named structs
+const Version = 19 // last change: add nounwind attribute
 
 func init() {
 	llvm.InitializeAllTargets()
@@ -846,6 +846,16 @@ func (b *builder) createFunction() {
 		// Add LLVM attribute to always avoid inlining this function.
 		noinline := b.ctx.CreateEnumAttribute(llvm.AttributeKindID("noinline"), 0)
 		b.llvmFn.AddFunctionAttr(noinline)
+	}
+
+	// TinyGo does not currently raise exceptions, so set the 'nounwind' flag.
+	// This behavior matches Clang when compiling C source files.
+	// It reduces binary size on Linux a little bit on non-x86_64 targets by
+	// eliminating exception tables for these functions.
+	b.llvmFn.AddFunctionAttr(b.ctx.CreateEnumAttribute(llvm.AttributeKindID("nounwind"), 0))
+	if strings.HasPrefix(b.Triple, "x86_64-") {
+		// Required by the ABI.
+		b.llvmFn.AddFunctionAttr(b.ctx.CreateEnumAttribute(llvm.AttributeKindID("uwtable"), 0))
 	}
 
 	// Add debug info, if needed.
