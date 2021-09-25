@@ -274,4 +274,159 @@ const (
 	DCSR     CSR = 0x7B0 // Debug control and status register.
 	DPC      CSR = 0x7B1 // Debug PC.
 	DSCRATCH CSR = 0x7B2 // Debug scratch register.
+
+	// CSR MSTATUS register
+	// Bit for UIE - User mode Interrupt Enable
+	CSR_MSTATUS_UIE_Bit = 0x1
+	// Position of CSR_MSTATUS_UIE_Bit field.
+	CSR_MSTATUS_UIE_Pos = 0
+	// Bit mask of CSR_MSTATUS_UIE_Bit field.
+	CSR_MSTATUS_UIE_Msk = 0x1
+
+	// Bit for SIE - Supervisor mode interrupt enable
+	CSR_MSTATUS_SIE_Bit = 0x2
+	// Position of CSR_MSTATUS_SIE_Bit field.
+	CSR_MSTATUS_SIE_Pos = 1
+	// Bit mask of CSR_MSTATUS_SIE_Bit field.
+	CSR_MSTATUS_SIE_Msk = 0x2
+
+	// WPRI - Writes Preserve Values, Reads Ignore Values
+	// CSR_MSTATUS_WPRI_Bit = 0x4
+	// Position of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Pos = 2
+	// Bit mask of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Msk = 0x4
+
+	// Bit for MIE - Machine mode interrupt enable
+	CSR_MSTATUS_MIE_Bit = 0x8
+	// Position of CSR_MSTATUS_MIE_Bit field.
+	CSR_MSTATUS_MIE_Pos = 3
+	// Bit mask of CSR_MSTATUS_MIE_Bit field.
+	CSR_MSTATUS_MIE_Msk = 0x8
+
+	// Bit for UPIE - User mode interrupt enable (stacked)
+	CSR_MSTATUS_UPIE_Bit = 0x10
+	// Position of CSR_MSTATUS_UPIE_Bit field.
+	CSR_MSTATUS_UPIE_Pos = 4
+	// Bit mask of CSR_MSTATUS_UPIE_Bit field.
+	CSR_MSTATUS_UPIE_Msk = 0x10
+
+	// Bit for SPIE - Supervisor mode interrupt enable (stacked)
+	CSR_MSTATUS_SPIE_Bit = 0x20
+	// Position of CSR_MSTATUS_SPIE_Bit field.
+	CSR_MSTATUS_SPIE_Pos = 5
+	// Bit mask of CSR_MSTATUS_SPIE_Bit field.
+	CSR_MSTATUS_SPIE_Msk = 0x20
+
+	// WPRI - Writes Preserve Values, Reads Ignore Values
+	// CSR_MSTATUS_WPRI_Bit = 0x40
+	// Position of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Pos = 6
+	// Bit mask of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Msk = 0x40
+
+	// Bit for MPIE - Machine mode interrupt enable (stacked)
+	CSR_MSTATUS_MPIE_Bit = 0x80
+	// Position of CSR_MSTATUS_MPIE_Bit field.
+	CSR_MSTATUS_MPIE_Pos = 7
+	// Bit mask of CSR_MSTATUS_MPIE_Bit field.
+	CSR_MSTATUS_MPIE_Msk = 0x80
+
+	// Bit for SPP - Supervisor previous mode
+	CSR_MSTATUS_SPP_Bit = 0x100
+	// Position of CSR_MSTATUS_SPP_Bit field.
+	CSR_MSTATUS_SPP_Pos = 8
+	// Bit mask of CSR_MSTATUS_SPP_Bit field.
+	CSR_MSTATUS_SPP_Msk = 0x100
+
+	// Bit for VS_9 - Vector Extension dirty state (version 0.9)
+	CSR_MSTATUS_VS_9_Bit = 0x600
+	// Position of CSR_MSTATUS_VS_9_Bit field.
+	CSR_MSTATUS_VS_9_Pos = 9
+	// Bit mask of CSR_MSTATUS_VS_9_Bit field.
+	CSR_MSTATUS_VS_9_Msk = 0x600
+
+	// Bit for MPP - Machine previous mode
+	CSR_MSTATUS_MPP_Bit = 0x1800
+	// Position of CSR_MSTATUS_MPP_Bit field.
+	CSR_MSTATUS_MPP_Pos = 11
+	// Bit mask of CSR_MSTATUS_MPP_Bit field.
+	CSR_MSTATUS_MPP_Msk = 0x1800
+
+	// Bit for FS - Floating point dirty state
+	CSR_MSTATUS_FS_Bit = 0x6000
+	// Position of CSR_MSTATUS_FS_Bit field.
+	CSR_MSTATUS_FS_Pos = 13
+	// Bit mask of CSR_MSTATUS_FS_Bit field.
+	CSR_MSTATUS_FS_Msk = 0x6000
+
+	// Bit for XS - User extension dirty state
+	CSR_MSTATUS_XS_Bit = 0x18000
+	// Position of CSR_MSTATUS_XS_Bit field.
+	CSR_MSTATUS_XS_Pos = 15
+	// Bit mask of CSR_MSTATUS_XS_Bit field.
+	CSR_MSTATUS_XS_Msk = 0x18000
+
+	// Bit for MPRV - Modify privilege (requires U extension)
+	CSR_MSTATUS_MPRV_Bit = 0x20000
+	// Position of CSR_MSTATUS_MPRV_Bit field.
+	CSR_MSTATUS_MPRV_Pos = 17
+	// Bit mask of CSR_MSTATUS_MPRV_Bit field.
+	CSR_MSTATUS_MPRV_Msk = 0x20000
+
+	// Bit for SUM - Permit Supervisor User access (requires S extension)
+	CSR_MSTATUS_SUM_Bit = 0x40000
+	// Position of CSR_MSTATUS_SUM_Bit field.
+	CSR_MSTATUS_SUM_Pos = 18
+	// Bit mask of CSR_MSTATUS_SUM_Bit field.
+	CSR_MSTATUS_SUM_Msk = 0x40000
+
+	// Bit for MXR - Make executable readable (requires S extension)
+	CSR_MSTATUS_MXR_Bit = 0x80000
+	// Position of CSR_MSTATUS_MXR_Bit field.
+	CSR_MSTATUS_MXR_Pos = 19
+	// Bit mask of CSR_MSTATUS_MXR_Bit field.
+	CSR_MSTATUS_MXR_Msk = 0x80000
+
+	// Bit for TVM - Trap virtual memory (requires S extension)
+	CSR_MSTATUS_TVM_Bit = 0x100000
+	// Position of CSR_MSTATUS_TVM_Bit field.
+	CSR_MSTATUS_TVM_Pos = 20
+	// Bit mask of CSR_MSTATUS_TVM_Bit field.
+	CSR_MSTATUS_TVM_Msk = 0x100000
+
+	// Bit for TW - Timeout wait (requires S extension)
+	CSR_MSTATUS_TW_Bit = 0x200000
+	// Position of CSR_MSTATUS_TW_Bit field.
+	CSR_MSTATUS_TW_Pos = 21
+	// Bit mask of CSR_MSTATUS_TW_Bit field.
+	CSR_MSTATUS_TW_Msk = 0x200000
+
+	// Bit for TSR - Trap SRET (requires S extension)
+	CSR_MSTATUS_TSR_Bit = 0x400000
+	// Position of CSR_MSTATUS_TSR_Bit field.
+	CSR_MSTATUS_TSR_Pos = 22
+	// Bit mask of CSR_MSTATUS_TSR_Bit field.
+	CSR_MSTATUS_TSR_Msk = 0x400000
+
+	// Bit for VS_8 - Vector Extension dirty state (version 0.8)
+	CSR_MSTATUS_VS_8_Bit = 0x1800000
+	// Position of CSR_MSTATUS_VS_8_Bit field.
+	CSR_MSTATUS_VS_8_Pos = 23
+	// Bit mask of CSR_MSTATUS_VS_8_Bit field.
+	CSR_MSTATUS_VS_8_Msk = 0x1800000
+
+	// WPRI - Writes Preserve Values, Reads Ignore Values
+	// CSR_MSTATUS_WPRI_Bit = 0x7E000000
+	// Position of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Pos = 25
+	// Bit mask of CSR_MSTATUS_WPRI_Bit field.
+	// CSR_MSTATUS_WPRI_Msk = 0x7E000000
+
+	// Bit for SD - Dirty state summary bit (read only)
+	CSR_MSTATUS_SD_Bit = 0x8000000
+	// Position of CSR_MSTATUS_SD_Bit field.
+	CSR_MSTATUS_SD_Pos = 31
+	// Bit mask of CSR_MSTATUS_SD_Bit field.
+	CSR_MSTATUS_SD_Msk = 0x8000000
 )

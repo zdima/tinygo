@@ -25,13 +25,14 @@ func AsmFull(asm string, regs map[string]interface{}) uintptr
 func DisableInterrupts() uintptr {
 	// Note: this can be optimized with a CSRRW instruction, which atomically
 	// swaps the value and returns the old value.
-	mask := MIE.Get()
-	MIE.Set(0)
+	mask := MSTATUS.ClearBits(CSR_MSTATUS_MIE_Bit)
 	return mask
 }
 
 // EnableInterrupts enables all interrupts again. The value passed in must be
 // the mask returned by DisableInterrupts.
 func EnableInterrupts(mask uintptr) {
-	MIE.Set(mask)
+	if mask != 0 {
+		MSTATUS.SetBits(CSR_MSTATUS_MIE_Bit)
+	}
 }
